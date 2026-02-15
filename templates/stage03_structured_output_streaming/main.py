@@ -1,8 +1,16 @@
 """Stage 03: 结构化输出 + 流式输出示例。"""
 
 import os
+from typing import Any
 
+from dotenv import load_dotenv
 from langchain.agents import create_agent
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from templates.common.pretty_print import pretty_print_agent_result as _pretty_print_agent_result, pretty_print_stream_event as _pretty_print_stream_event
 from pydantic import BaseModel, Field
 
 
@@ -13,7 +21,18 @@ class TicketResult(BaseModel):
     reason: str = Field(description="分类原因")
 
 
+def pretty_print_agent_result(result: dict[str, Any], title: str = "Agent 执行结果") -> None:
+    """调用公共打印工具，展示消息核心返回值。"""
+    _pretty_print_agent_result(result=result, title=title)
+
+
+def pretty_print_stream_event(event: Any) -> None:
+    """调用公共打印工具，展示流式事件核心信息。"""
+    _pretty_print_stream_event(event)
+
 if __name__ == "__main__":
+    load_dotenv()
+
     if not os.getenv("OPENAI_API_KEY"):
         raise RuntimeError("请先设置 OPENAI_API_KEY")
 
@@ -36,7 +55,7 @@ if __name__ == "__main__":
             ]
         }
     )
-    print("Structured:", result)
+    pretty_print_agent_result(result, title="Structured Output")
 
     # 2) 流式输出：逐步返回更新事件，适合实时展示。
     # 不同模型提供方的事件结构可能略有差异。
@@ -52,4 +71,4 @@ if __name__ == "__main__":
         },
         stream_mode="updates",
     ):
-        print(event)
+        pretty_print_stream_event(event)

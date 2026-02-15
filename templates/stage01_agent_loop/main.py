@@ -1,8 +1,16 @@
 """Stage 01: 观察 Agent 在多轮请求中的工具调用循环。"""
 
 import os
+from typing import Any
 
+from dotenv import load_dotenv
 from langchain.agents import create_agent
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from templates.common.pretty_print import pretty_print_agent_result as _pretty_print_agent_result, pretty_print_stream_event as _pretty_print_stream_event
 
 
 # 计算工具：把字符串表达式交给 Python 计算。
@@ -27,7 +35,19 @@ def city_timezone(city: str) -> str:
     return mapping.get(city, "未知时区")
 
 
+def pretty_print_agent_result(result: dict[str, Any], title: str = "Agent 执行结果") -> None:
+    """调用公共打印工具，展示消息核心返回值。"""
+    _pretty_print_agent_result(result=result, title=title)
+
+
+def pretty_print_stream_event(event: Any) -> None:
+    """调用公共打印工具，展示流式事件核心信息。"""
+    _pretty_print_stream_event(event)
+
 if __name__ == "__main__":
+    # 自动读取项目根目录下的 .env 文件（如果存在）。
+    load_dotenv()
+
     # 每次运行前先检查密钥是否存在。
     if not os.getenv("OPENAI_API_KEY"):
         raise RuntimeError("请先设置 OPENAI_API_KEY")
@@ -50,7 +70,7 @@ if __name__ == "__main__":
             ]
         }
     )
-    print("Round1:", round_1)
+    pretty_print_agent_result(round_1, title="Round 1")
 
     # 第二轮：独立发起另一条请求，继续观察工具路由行为。
     round_2 = agent.invoke(
@@ -63,4 +83,4 @@ if __name__ == "__main__":
             ]
         }
     )
-    print("Round2:", round_2)
+    pretty_print_agent_result(round_2, title="Round 2")

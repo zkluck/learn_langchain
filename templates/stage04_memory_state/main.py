@@ -1,8 +1,16 @@
 """Stage 04: 演示基于 thread_id 的会话记忆。"""
 
 import os
+from typing import Any
 
+from dotenv import load_dotenv
 from langchain.agents import create_agent
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from templates.common.pretty_print import pretty_print_agent_result as _pretty_print_agent_result, pretty_print_stream_event as _pretty_print_stream_event
 from langgraph.checkpoint.memory import InMemorySaver
 
 
@@ -12,7 +20,18 @@ def set_preference(key: str, value: str) -> str:
     return f"preference_saved:{key}={value}"
 
 
+def pretty_print_agent_result(result: dict[str, Any], title: str = "Agent 执行结果") -> None:
+    """调用公共打印工具，展示消息核心返回值。"""
+    _pretty_print_agent_result(result=result, title=title)
+
+
+def pretty_print_stream_event(event: Any) -> None:
+    """调用公共打印工具，展示流式事件核心信息。"""
+    _pretty_print_stream_event(event)
+
 if __name__ == "__main__":
+    load_dotenv()
+
     if not os.getenv("OPENAI_API_KEY"):
         raise RuntimeError("请先设置 OPENAI_API_KEY")
 
@@ -39,7 +58,7 @@ if __name__ == "__main__":
         },
         config=config_a,
     )
-    print("A-1:", r1)
+    pretty_print_agent_result(r1, title="A-1")
 
     # user-A 第二轮：读取偏好，通常应能记住。
     r2 = agent.invoke(
@@ -50,7 +69,7 @@ if __name__ == "__main__":
         },
         config=config_a,
     )
-    print("A-2:", r2)
+    pretty_print_agent_result(r2, title="A-2")
 
     # user-B 第一轮：不同 thread_id，不应继承 user-A 上下文。
     r3 = agent.invoke(
@@ -61,4 +80,4 @@ if __name__ == "__main__":
         },
         config=config_b,
     )
-    print("B-1:", r3)
+    pretty_print_agent_result(r3, title="B-1")

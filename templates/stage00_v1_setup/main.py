@@ -1,8 +1,15 @@
 """Stage 00: v1 环境与最小 Agent 示例。"""
 
 import os
+from typing import Any
 
 from langchain.agents import create_agent
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from templates.common.pretty_print import pretty_print_agent_result as _pretty_print_agent_result, pretty_print_stream_event as _pretty_print_stream_event
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
 
@@ -18,6 +25,15 @@ def add(a: float, b: float) -> float:
     """返回两个数字之和。"""
     return a + b
 
+
+def pretty_print_agent_result(result: dict[str, Any], title: str = "Agent 执行结果") -> None:
+    """调用公共打印工具，展示消息核心返回值。"""
+    _pretty_print_agent_result(result=result, title=title)
+
+
+def pretty_print_stream_event(event: Any) -> None:
+    """调用公共打印工具，展示流式事件核心信息。"""
+    _pretty_print_stream_event(event)
 
 if __name__ == "__main__":
     # 自动读取项目根目录下的 .env 文件（如果存在）。
@@ -53,5 +69,5 @@ if __name__ == "__main__":
         }
     )
 
-    # 为了学习方便，先直接打印完整结果对象。
-    print(result)
+    # 用更易读的方式展示结果，方便新手理解执行过程。
+    pretty_print_agent_result(result)

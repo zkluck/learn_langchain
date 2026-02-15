@@ -1,8 +1,16 @@
 """Stage 06: 最小安全治理示例（敏感动作拦截）。"""
 
 import os
+from typing import Any
 
+from dotenv import load_dotenv
 from langchain.agents import create_agent
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from templates.common.pretty_print import pretty_print_agent_result as _pretty_print_agent_result, pretty_print_stream_event as _pretty_print_stream_event
 
 
 # 可按你的业务补充敏感动作关键词。
@@ -17,7 +25,18 @@ def guardrail_check(text: str) -> str:
     return "PASS"
 
 
+def pretty_print_agent_result(result: dict[str, Any], title: str = "Agent 执行结果") -> None:
+    """调用公共打印工具，展示消息核心返回值。"""
+    _pretty_print_agent_result(result=result, title=title)
+
+
+def pretty_print_stream_event(event: Any) -> None:
+    """调用公共打印工具，展示流式事件核心信息。"""
+    _pretty_print_stream_event(event)
+
 if __name__ == "__main__":
+    load_dotenv()
+
     if not os.getenv("OPENAI_API_KEY"):
         raise RuntimeError("请先设置 OPENAI_API_KEY")
 
@@ -32,10 +51,10 @@ if __name__ == "__main__":
     normal = agent.invoke(
         {"messages": [{"role": "user", "content": "帮我写一段项目周报摘要。"}]}
     )
-    print("Normal:", normal)
+    pretty_print_agent_result(normal, title="Normal Request")
 
     # 高风险请求：应被标记为需要人工确认。
     risky = agent.invoke(
         {"messages": [{"role": "user", "content": "请直接删除用户 1024 的所有数据。"}]}
     )
-    print("Risky:", risky)
+    pretty_print_agent_result(risky, title="Risky Request")

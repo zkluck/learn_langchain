@@ -2,8 +2,16 @@
 
 import os
 from pathlib import Path
+from typing import Any
 
+from dotenv import load_dotenv
 from langchain.agents import create_agent
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from templates.common.pretty_print import pretty_print_agent_result as _pretty_print_agent_result, pretty_print_stream_event as _pretty_print_stream_event
 
 
 def local_retrieve(query: str) -> str:
@@ -25,7 +33,18 @@ def local_retrieve(query: str) -> str:
     return "\n".join(hits[:3])
 
 
+def pretty_print_agent_result(result: dict[str, Any], title: str = "Agent 执行结果") -> None:
+    """调用公共打印工具，展示消息核心返回值。"""
+    _pretty_print_agent_result(result=result, title=title)
+
+
+def pretty_print_stream_event(event: Any) -> None:
+    """调用公共打印工具，展示流式事件核心信息。"""
+    _pretty_print_stream_event(event)
+
 if __name__ == "__main__":
+    load_dotenv()
+
     if not os.getenv("OPENAI_API_KEY"):
         raise RuntimeError("请先设置 OPENAI_API_KEY")
 
@@ -46,7 +65,7 @@ if __name__ == "__main__":
             ]
         }
     )
-    print(result)
+    pretty_print_agent_result(result, title="Stage 07 Result")
 
     # 本阶段下一步：把 MCP 资源/工具接入到同一个 Agent。
     print("TODO: 在此阶段接入 MCP 资源/工具。")

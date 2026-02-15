@@ -3,7 +3,14 @@
 import os
 from typing import Any
 
+from dotenv import load_dotenv
 from langchain.agents import create_agent
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from templates.common.pretty_print import pretty_print_agent_result as _pretty_print_agent_result, pretty_print_stream_event as _pretty_print_stream_event
 
 
 # 说明：不同版本中 middleware 接口名称可能有细微差异。
@@ -23,7 +30,18 @@ def after_model(state: dict[str, Any]) -> dict[str, Any]:
     return state
 
 
+def pretty_print_agent_result(result: dict[str, Any], title: str = "Agent 执行结果") -> None:
+    """调用公共打印工具，展示消息核心返回值。"""
+    _pretty_print_agent_result(result=result, title=title)
+
+
+def pretty_print_stream_event(event: Any) -> None:
+    """调用公共打印工具，展示流式事件核心信息。"""
+    _pretty_print_stream_event(event)
+
 if __name__ == "__main__":
+    load_dotenv()
+
     if not os.getenv("OPENAI_API_KEY"):
         raise RuntimeError("请先设置 OPENAI_API_KEY")
 
@@ -42,4 +60,4 @@ if __name__ == "__main__":
             ]
         }
     )
-    print(result)
+    pretty_print_agent_result(result, title="Stage 05 Result")
