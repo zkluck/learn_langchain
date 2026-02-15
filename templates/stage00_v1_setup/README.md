@@ -9,6 +9,13 @@
 2. 运行 `main.py`，确认工具可被调用。
 3. 新增一个你自己的工具函数并让模型调用。
 
+## API Key（推荐 .env）
+在项目根目录创建 `.env` 文件：
+
+```bash
+echo 'OPENAI_API_KEY=你的key' > .env
+```
+
 ## 运行
 ```bash
 uv run python templates/stage00_v1_setup/main.py

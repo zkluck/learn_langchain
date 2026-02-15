@@ -16,8 +16,9 @@
 # 1) 在项目目录创建/更新虚拟环境并安装依赖
 uv sync
 
-# 2) 配置你的模型密钥（示例：OpenAI）
-export OPENAI_API_KEY="你的key"
+# 2) 配置你的模型密钥（推荐写入 .env）
+cp .env.example .env
+# 然后编辑 .env，把 OPENAI_API_KEY 改成你的真实 key
 
 # 3) 运行任意阶段脚本
 uv run python templates/stage00_v1_setup/main.py

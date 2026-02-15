@@ -3,6 +3,7 @@
 import os
 
 from langchain.agents import create_agent
+from dotenv import load_dotenv
 
 
 # 这是一个最小工具函数：输入城市，返回天气文本。
@@ -18,9 +19,13 @@ def add(a: float, b: float) -> float:
 
 
 if __name__ == "__main__":
+    # 自动读取项目根目录下的 .env 文件（如果存在）。
+    # 这样新手只需要维护一个 .env 文件，不用每次手动 export。
+    load_dotenv()
+
     # Agent 连接在线模型时需要 API Key。
     if not os.getenv("OPENAI_API_KEY"):
-        raise RuntimeError("请先设置 OPENAI_API_KEY")
+        raise RuntimeError("请先在 .env 或环境变量中设置 OPENAI_API_KEY")
 
     # create_agent 是 LangChain v1 推荐入口。
     # model: 指定模型
