@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     # 本示例里，模型可以在需要时调用两个工具。
     agent = create_agent(
-        model="openai:gpt-4.1-mini",
+        model="openai:qwen3-max",
         tools=[calculator, city_timezone],
         system_prompt="你是一个严谨的助手，需要优先使用工具。",
     )

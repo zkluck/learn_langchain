@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     # middleware 列表里可放多个处理函数。
     agent = create_agent(
-        model="openai:gpt-4.1-mini",
+        model="openai:qwen3-max",
         tools=[],
         system_prompt="你是中间件实验助手。",
         middleware=[before_model, after_model],

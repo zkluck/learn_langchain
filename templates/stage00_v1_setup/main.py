@@ -4,6 +4,7 @@ import os
 
 from langchain.agents import create_agent
 from dotenv import load_dotenv
+from langchain.chat_models import init_chat_model
 
 
 # 这是一个最小工具函数：输入城市，返回天气文本。
@@ -31,8 +32,11 @@ if __name__ == "__main__":
     # model: 指定模型
     # tools: 模型可调用的工具列表
     # system_prompt: 系统级行为约束
+    # qwen3-max 需要显式指定 provider；这里走 OpenAI 兼容协议。
+    model = init_chat_model("qwen3-max", model_provider="openai")
+
     agent = create_agent(
-        model="openai:gpt-4.1-mini",
+        model=model,
         tools=[get_weather, add],
         system_prompt="你是一个简洁的助理。",
     )

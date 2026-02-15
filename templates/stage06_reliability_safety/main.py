@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     # 通过系统提示约束模型“先调用 guardrail_check 再回答”。
     agent = create_agent(
-        model="openai:gpt-4.1-mini",
+        model="openai:qwen3-max",
         tools=[guardrail_check],
         system_prompt="你是安全优先的助手，先执行 guardrail_check 再回答。",
     )

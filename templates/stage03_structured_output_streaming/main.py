@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     # response_format=TicketResult 会要求输出符合该 schema。
     agent = create_agent(
-        model="openai:gpt-4.1-mini",
+        model="openai:qwen3-max",
         tools=[],
         system_prompt="你是工单分类助手。",
         response_format=TicketResult,

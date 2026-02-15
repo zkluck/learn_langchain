@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     # 这里一次性注册 3 个工具，方便观察模型如何选择调用。
     agent = create_agent(
-        model="openai:gpt-4.1-mini",
+        model="openai:qwen3-max",
         tools=[weather, multiply, classify_priority],
         system_prompt="你是客服助手，回答前可调用最合适的工具。",
     )

@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     # 让模型先检索，再根据检索结果回答。
     agent = create_agent(
-        model="openai:gpt-4.1-mini",
+        model="openai:qwen3-max",
         tools=[local_retrieve],
         system_prompt="回答前先检索 local_retrieve，再基于检索结果作答。",
     )

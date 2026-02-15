@@ -20,7 +20,7 @@ if __name__ == "__main__":
     checkpointer = InMemorySaver()
 
     agent = create_agent(
-        model="openai:gpt-4.1-mini",
+        model="openai:qwen3-max",
         tools=[set_preference],
         system_prompt="你是会记忆上下文的助手。",
         checkpointer=checkpointer,
