@@ -1,0 +1,64 @@
+"""Stage 04: 演示基于 thread_id 的会话记忆。"""
+
+import os
+
+from langchain.agents import create_agent
+from langgraph.checkpoint.memory import InMemorySaver
+
+
+def set_preference(key: str, value: str) -> str:
+    """模拟“保存用户偏好”动作。"""
+    # 学习阶段先返回文本；进阶时可改成写数据库或 KV 存储。
+    return f"preference_saved:{key}={value}"
+
+
+if __name__ == "__main__":
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError("请先设置 OPENAI_API_KEY")
+
+    # InMemorySaver 会把会话状态存在内存里（程序结束后会丢失）。
+    checkpointer = InMemorySaver()
+
+    agent = create_agent(
+        model="openai:gpt-4.1-mini",
+        tools=[set_preference],
+        system_prompt="你是会记忆上下文的助手。",
+        checkpointer=checkpointer,
+    )
+
+    # thread_id 是“会话隔离键”。同一个 thread_id 会共享上下文。
+    config_a = {"configurable": {"thread_id": "user-A"}}
+    config_b = {"configurable": {"thread_id": "user-B"}}
+
+    # user-A 第一轮：写入偏好。
+    r1 = agent.invoke(
+        {
+            "messages": [
+                {"role": "user", "content": "记住：我偏好中文回答。"},
+            ]
+        },
+        config=config_a,
+    )
+    print("A-1:", r1)
+
+    # user-A 第二轮：读取偏好，通常应能记住。
+    r2 = agent.invoke(
+        {
+            "messages": [
+                {"role": "user", "content": "我刚才偏好什么语言？"},
+            ]
+        },
+        config=config_a,
+    )
+    print("A-2:", r2)
+
+    # user-B 第一轮：不同 thread_id，不应继承 user-A 上下文。
+    r3 = agent.invoke(
+        {
+            "messages": [
+                {"role": "user", "content": "我刚才偏好什么语言？"},
+            ]
+        },
+        config=config_b,
+    )
+    print("B-1:", r3)

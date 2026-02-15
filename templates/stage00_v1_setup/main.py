@@ -1,0 +1,48 @@
+"""Stage 00: v1 环境与最小 Agent 示例。"""
+
+import os
+
+from langchain.agents import create_agent
+
+
+# 这是一个最小工具函数：输入城市，返回天气文本。
+def get_weather(city: str) -> str:
+    """返回固定天气结果，用于学习工具调用流程。"""
+    return f"{city} 晴，25C。"
+
+
+# 这是第二个工具函数：做最基础的加法。
+def add(a: float, b: float) -> float:
+    """返回两个数字之和。"""
+    return a + b
+
+
+if __name__ == "__main__":
+    # Agent 连接在线模型时需要 API Key。
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError("请先设置 OPENAI_API_KEY")
+
+    # create_agent 是 LangChain v1 推荐入口。
+    # model: 指定模型
+    # tools: 模型可调用的工具列表
+    # system_prompt: 系统级行为约束
+    agent = create_agent(
+        model="openai:gpt-4.1-mini",
+        tools=[get_weather, add],
+        system_prompt="你是一个简洁的助理。",
+    )
+
+    # messages 是对话输入，至少包含一条用户消息。
+    result = agent.invoke(
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "帮我查北京天气，并计算 13.5 + 7.2",
+                }
+            ]
+        }
+    )
+
+    # 为了学习方便，先直接打印完整结果对象。
+    print(result)
