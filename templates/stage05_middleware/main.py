@@ -5,6 +5,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from langchain.agents import create_agent
+from langchain.agents.middleware import AgentMiddleware
 import sys
 from pathlib import Path
 
@@ -16,18 +17,19 @@ from templates.common.pretty_print import pretty_print_agent_result as _pretty_p
 # 说明：不同版本中 middleware 接口名称可能有细微差异。
 # 该模板用于学习“在模型调用前后做统一处理”的思路。
 
-def before_model(state: dict[str, Any]) -> dict[str, Any]:
-    """模型调用前执行：打印当前消息数量。"""
-    messages = state.get("messages", [])
-    print(f"[before_model] message_count={len(messages)}")
-    return state
 
+class LoggingMiddleware(AgentMiddleware):
+    """最小示例：模型调用前后打印消息数量。"""
 
-def after_model(state: dict[str, Any]) -> dict[str, Any]:
-    """模型调用后执行：打印当前消息数量。"""
-    messages = state.get("messages", [])
-    print(f"[after_model] message_count={len(messages)}")
-    return state
+    def before_model(self, state: dict[str, Any], runtime) -> dict[str, Any] | None:
+        messages = state.get("messages", [])
+        print(f"[before_model] message_count={len(messages)}")
+        return state
+
+    def after_model(self, state: dict[str, Any], runtime) -> dict[str, Any] | None:
+        messages = state.get("messages", [])
+        print(f"[after_model] message_count={len(messages)}")
+        return state
 
 
 def pretty_print_agent_result(result: dict[str, Any], title: str = "Agent 执行结果") -> None:
@@ -45,12 +47,12 @@ if __name__ == "__main__":
     if not os.getenv("OPENAI_API_KEY"):
         raise RuntimeError("请先设置 OPENAI_API_KEY")
 
-    # middleware 列表里可放多个处理函数。
+    # middleware 列表里可放多个处理实例。
     agent = create_agent(
         model="openai:qwen3-max",
         tools=[],
         system_prompt="你是中间件实验助手。",
-        middleware=[before_model, after_model],
+        middleware=[LoggingMiddleware()],
     )
 
     result = agent.invoke(

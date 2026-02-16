@@ -16,7 +16,8 @@ from templates.common.pretty_print import pretty_print_agent_result as _pretty_p
 
 def local_retrieve(query: str) -> str:
     """从 docs/*.txt 中挑选包含关键词的片段。"""
-    docs_dir = Path("templates/stage07_rag_mcp/docs")
+    # 以当前脚本所在目录为基准，避免受运行目录影响。
+    docs_dir = Path(__file__).resolve().parent / "docs"
     hits: list[str] = []
 
     # 遍历文本文件，做最简单的关键词命中。

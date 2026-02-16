@@ -30,6 +30,29 @@ def pretty_print_stream_event(event: Any) -> None:
     """调用公共打印工具，展示流式事件核心信息。"""
     _pretty_print_stream_event(event)
 
+
+def _extract_chunk_text(chunk: Any) -> str:
+    """把 stream_mode='messages' 返回的 chunk 尽量转成文本。"""
+    content = getattr(chunk, "content", "")
+
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, dict):
+                if block.get("type") == "text":
+                    parts.append(str(block.get("text", "")))
+                continue
+
+            text = getattr(block, "text", None)
+            if isinstance(text, str):
+                parts.append(text)
+        return "".join(parts)
+
+    return ""
+
 if __name__ == "__main__":
     load_dotenv()
 
@@ -57,10 +80,18 @@ if __name__ == "__main__":
     )
     pretty_print_agent_result(result, title="Structured Output")
 
-    # 2) 流式输出：逐步返回更新事件，适合实时展示。
-    # 不同模型提供方的事件结构可能略有差异。
-    print("Streaming events:")
-    for event in agent.stream(
+    # 2) 流式输出：用 stream_mode="messages" 打印 token/chunk。
+    # 说明：response_format 常会走 tool_call，更新事件可能只在结束时返回一次。
+    # 为了更直观看到“逐步输出”，这里单独创建一个纯文本流式 Agent。
+    stream_agent = create_agent(
+        model="openai:qwen3-max",
+        tools=[],
+        system_prompt="你是运维助手，请对输入做简短总结。",
+    )
+
+    print("Streaming tokens:", end=" ", flush=True)
+    saw_token = False
+    for chunk, _metadata in stream_agent.stream(
         {
             "messages": [
                 {
@@ -69,6 +100,14 @@ if __name__ == "__main__":
                 }
             ]
         },
-        stream_mode="updates",
+        stream_mode="messages",
     ):
-        pretty_print_stream_event(event)
+        text = _extract_chunk_text(chunk)
+        if text:
+            print(text, end="", flush=True)
+            saw_token = True
+
+    if not saw_token:
+        print("(当前模型未返回可见的增量 token)")
+    else:
+        print()

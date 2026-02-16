@@ -84,3 +84,15 @@ if __name__ == "__main__":
         }
     )
     pretty_print_agent_result(round_2, title="Round 2")
+
+    round_3 = agent.invoke(
+        {
+            "messages":[
+                {
+                    "role":"user",
+                    "content":"上海时区是什么？再计算一下1+1-1"
+                }
+            ]
+        }
+    )
+    pretty_print_agent_result(round_3, title="Round 3")
