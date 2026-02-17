@@ -9,14 +9,24 @@ from langgraph.graph import StateGraph, MessagesState, START, END
 def build_graph():
     model = ChatOpenAI(model="qwen3-max")
 
-    def call_model(state: MessagesState) -> dict:
+    def draft_answer(state: MessagesState) -> dict:
         response = model.invoke(state["messages"])
         return {"messages": [response]}
 
+    def finalize_answer(state: MessagesState) -> dict:
+        # 第二个节点：要求模型把上一步答案压缩成更精炼的版本。
+        messages = state["messages"] + [
+            {"role": "user", "content": "请把上面的回答整理成 3 条要点。"}
+        ]
+        response = model.invoke(messages)
+        return {"messages": [response]}
+
     builder = StateGraph(MessagesState)
-    builder.add_node("model", call_model)
-    builder.add_edge(START, "model")
-    builder.add_edge("model", END)
+    builder.add_node("draft", draft_answer)
+    builder.add_node("finalize", finalize_answer)
+    builder.add_edge(START, "draft")
+    builder.add_edge("draft", "finalize")
+    builder.add_edge("finalize", END)
     return builder.compile()
 
 
@@ -54,9 +64,13 @@ if __name__ == "__main__":
 
     # --- 模式 3: messages — 逐 token 输出（打字机效果）---
     print("=== stream_mode='messages'（逐 token）===")
-    print("  ", end="", flush=True)
+    current_node = None
     for chunk, metadata in graph.stream(user_input, stream_mode="messages"):
         content = getattr(chunk, "content", "")
+        node_name = metadata.get("langgraph_node") if isinstance(metadata, dict) else None
+        if node_name != current_node:
+            current_node = node_name
+            print(f"\n  [node={current_node}] ", end="", flush=True)
         if isinstance(content, str) and content:
             print(content, end="", flush=True)
     print("\n")

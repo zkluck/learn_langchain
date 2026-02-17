@@ -16,6 +16,11 @@
    ```
    或进入对应目录后执行 `uv run main.py`。
 
+## 相关教程
+- LangChain（当前文档）：`templates/`
+- LangGraph（10 Stage）：`LANGGRAPH_README.md`
+- Deep Agents（10 Stage）：`DEEPAGENTS_README.md`
+
 ## Stage 总览
 | Stage | 主题 | 关键能力 |
 | ----- | ---- | -------- |

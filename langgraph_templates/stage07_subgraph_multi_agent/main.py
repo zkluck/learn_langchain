@@ -67,18 +67,6 @@ def classify_node(state: MainState) -> dict:
         return {"category": "service"}
 
 
-def call_tech(state: MainState) -> dict:
-    """调用技术支持子图。"""
-    result = tech_graph.invoke({"query": state["query"]})
-    return {"answer": result["answer"]}
-
-
-def call_service(state: MainState) -> dict:
-    """调用客服子图。"""
-    result = service_graph.invoke({"query": state["query"]})
-    return {"answer": result["answer"]}
-
-
 def route_by_category(state: MainState) -> str:
     """路由函数。"""
     return "tech" if state["category"] == "tech" else "service"
@@ -87,8 +75,9 @@ def route_by_category(state: MainState) -> str:
 # 构建主图
 builder = StateGraph(MainState)
 builder.add_node("classify", classify_node)
-builder.add_node("tech", call_tech)
-builder.add_node("service", call_service)
+# 直接把子图作为主图节点（更贴近 Subgraph 嵌入概念）
+builder.add_node("tech", tech_graph)
+builder.add_node("service", service_graph)
 
 builder.add_edge(START, "classify")
 builder.add_conditional_edges("classify", route_by_category, {"tech": "tech", "service": "service"})

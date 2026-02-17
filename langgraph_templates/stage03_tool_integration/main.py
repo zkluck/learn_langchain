@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from langgraph.graph import StateGraph, MessagesState, START, END
-from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import ToolNode, tools_condition
 
 
 # --- 定义工具 ---
@@ -40,20 +40,13 @@ def build_graph():
         response = model.invoke(state["messages"])
         return {"messages": [response]}
 
-    # 路由函数：判断模型是否请求了工具调用
-    def should_continue(state: MessagesState) -> str:
-        last_message = state["messages"][-1]
-        if getattr(last_message, "tool_calls", None):
-            return "tools"
-        return END
-
     # 构建图
     builder = StateGraph(MessagesState)
     builder.add_node("model", call_model)
     builder.add_node("tools", tool_node)
 
     builder.add_edge(START, "model")
-    builder.add_conditional_edges("model", should_continue, {"tools": "tools", END: END})
+    builder.add_conditional_edges("model", tools_condition, {"tools": "tools", END: END})
     builder.add_edge("tools", "model")  # 工具执行完回到模型
 
     return builder.compile()

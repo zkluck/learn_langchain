@@ -62,10 +62,37 @@ if __name__ == "__main__":
     print(f"  AI: {last_msg.content}")
 
     # --- 查看状态 ---
-    print("\n=== get_state: Thread A 的状态 ===")
+    print("\n=== get_state: Thread A 的状态（更新前） ===")
     state_a = graph.get_state(config_a)
     print(f"  消息数量: {len(state_a.values['messages'])}")
     for i, msg in enumerate(state_a.values["messages"]):
         role = getattr(msg, "type", "unknown")
         content = getattr(msg, "content", "")[:60]
         print(f"  {i+1}. [{role}] {content}")
+
+    # --- 手动更新状态（调试/纠偏常用） ---
+    print("\n=== update_state: 手动写入偏好 ===")
+    graph.update_state(
+        config_a,
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "补充偏好：后续回答尽量简短。",
+                }
+            ]
+        },
+    )
+
+    r4 = graph.invoke(
+        {"messages": [{"role": "user", "content": "请用一句话介绍 LangGraph。"}]},
+        config=config_a,
+    )
+    print(f"  AI: {r4['messages'][-1].content}")
+
+    # --- 查看最近状态历史 ---
+    print("\n=== get_state_history: Thread A 最近 3 个快照 ===")
+    for idx, snapshot in enumerate(graph.get_state_history(config_a, limit=3), start=1):
+        values = snapshot.values or {}
+        messages = values.get("messages", [])
+        print(f"  snapshot-{idx}: message_count={len(messages)}")

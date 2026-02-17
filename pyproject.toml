@@ -3,11 +3,13 @@ name = "learn-langchain-v1"
 version = "0.1.0"
 description = "LangChain v1 learning project managed by uv"
 readme = "learning_path_langchain_v1.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
   "langchain>=1.0.0",
   "langchain-openai>=0.3.0",
   "langgraph>=1.0.0",
+  "deepagents==0.4.1",
+  "tavily-python>=0.5.0",
   "pydantic>=2.0.0",
   "python-dotenv>=1.0.0",
 ]

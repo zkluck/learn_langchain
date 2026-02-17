@@ -3,6 +3,7 @@
 import operator
 from typing import Annotated
 
+from pydantic import BaseModel
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END, MessagesState
 
@@ -29,6 +30,33 @@ def demo_simple_state():
 
     result = graph.invoke({"query": "hello langgraph"})
     print("=== 示例 1: 基础 TypedDict State ===")
+    print(f"query:  {result['query']}")
+    print(f"result: {result['result']}")
+    print()
+
+
+# ========== 示例 1.5: Pydantic State ==========
+
+class PydanticState(BaseModel):
+    query: str
+    result: str = ""
+
+
+def process_with_pydantic(state: PydanticState) -> dict:
+    """节点：演示 Pydantic state 也可作为图状态 schema。"""
+    return {"result": f"Pydantic 处理结果: {state.query.lower()}"}
+
+
+def demo_pydantic_state():
+    """演示：Pydantic 作为状态 schema。"""
+    builder = StateGraph(PydanticState)
+    builder.add_node("process", process_with_pydantic)
+    builder.add_edge(START, "process")
+    builder.add_edge("process", END)
+    graph = builder.compile()
+
+    result = graph.invoke({"query": "HELLO LANGGRAPH"})
+    print("=== 示例 1.5: Pydantic State ===")
     print(f"query:  {result['query']}")
     print(f"result: {result['result']}")
     print()
@@ -99,5 +127,6 @@ def demo_messages_state():
 
 if __name__ == "__main__":
     demo_simple_state()
+    demo_pydantic_state()
     demo_reducer_state()
     demo_messages_state()

@@ -1,7 +1,6 @@
 """Stage 08: 高级模式 — Send (map-reduce) / RetryPolicy / Command。"""
 
 import operator
-import random
 from typing import Annotated, Literal
 
 from typing_extensions import TypedDict

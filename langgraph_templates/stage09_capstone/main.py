@@ -167,6 +167,18 @@ def print_result(result: dict, title: str):
         print(f"    {log}")
 
 
+def run_with_stream_updates(graph, payload: dict, config: dict) -> dict:
+    """用 updates 模式执行一次，并返回最终状态。"""
+    print("  [stream_mode='updates']")
+    for update in graph.stream(payload, config=config, stream_mode="updates"):
+        for node_name in update.keys():
+            print(f"    -> node={node_name}")
+
+    # stream(mode=updates) 返回增量，最终完整状态可从 checkpointer 读取
+    snapshot = graph.get_state(config)
+    return snapshot.values
+
+
 # ========== 入口 ==========
 
 EMPTY = {"content": "", "risk": "", "approved": False, "context": "",
@@ -179,7 +191,11 @@ if __name__ == "__main__":
 
     # --- 场景 1: 普通工单（低风险 → P1）---
     config1 = {"configurable": {"thread_id": "ticket-1"}}
-    r1 = graph.invoke({**EMPTY, "content": "支付完成后页面报 500，订单卡住"}, config=config1)
+    r1 = run_with_stream_updates(
+        graph,
+        {**EMPTY, "content": "支付完成后页面报 500，订单卡住"},
+        config=config1,
+    )
     print_result(r1, "场景 1: 支付异常 (P1)")
 
     # --- 场景 2: 普通工单（低风险 → P3）---

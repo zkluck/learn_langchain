@@ -15,7 +15,7 @@ LangGraph 是 LangChain 生态中的底层图引擎，让你用"State + Node + E
 | 01 | State 设计 | TypedDict / Pydantic State / Reducer / MessagesState |
 | 02 | Nodes & Edges | add_node / add_edge / add_conditional_edges / 路由函数 |
 | 03 | Tool 集成 | ChatModel.bind_tools / ToolNode / 工具循环 |
-| 04 | Persistence | MemorySaver / thread_id / get_state / update_state |
+| 04 | Persistence | MemorySaver / thread_id / get_state / update_state / get_state_history |
 | 05 | Streaming | stream_mode: values / updates / messages |
 | 06 | Human-in-the-Loop | interrupt() / Command(resume=...) / 审批模式 |
 | 07 | Subgraph & Multi-Agent | 子图封装 / 主图调度 / 多 Agent 协作 |
@@ -26,7 +26,7 @@ LangGraph 是 LangChain 生态中的底层图引擎，让你用"State + Node + E
 ```
 langgraph_templates/
   stage00_hello_graph/          # Hello Graph + LangChain vs LangGraph
-  stage01_state_design/         # State 设计（TypedDict / Reducer）
+  stage01_state_design/         # State 设计（TypedDict / Pydantic / Reducer）
   stage02_nodes_edges/          # 多节点 + 条件边
   stage03_tool_integration/     # LLM + ToolNode 工具循环
   stage04_persistence/          # MemorySaver + thread_id
