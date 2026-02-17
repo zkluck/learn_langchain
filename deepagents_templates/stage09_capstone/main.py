@@ -1,10 +1,10 @@
-"""Stage 09: Capstone — 规划 + 子代理 + 记忆 + 审批整合。"""
+"""Stage 09: 企业知识库问答 Capstone。"""
 
 import os
-from typing import Literal
+import re
+from typing import Iterable
 
 from dotenv import load_dotenv
-from tavily import TavilyClient
 from deepagents import create_deep_agent
 from deepagents.backends import CompositeBackend, StateBackend, StoreBackend
 from langchain_openai import ChatOpenAI
@@ -14,11 +14,8 @@ from langgraph.types import Command
 
 
 def require_keys() -> None:
-    has_model_key = os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
-    if not has_model_key:
+    if not os.getenv("OPENAI_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
         raise RuntimeError("请先设置 OPENAI_API_KEY 或 ANTHROPIC_API_KEY")
-    if not os.getenv("TAVILY_API_KEY"):
-        raise RuntimeError("Stage 09 需要 TAVILY_API_KEY")
 
 
 def resolve_model():
@@ -32,6 +29,68 @@ def make_backend(runtime):
     return CompositeBackend(
         default=StateBackend(runtime),
         routes={"/memories/": StoreBackend(runtime)},
+    )
+
+
+KNOWLEDGE_BASE: list[dict[str, str | list[str]]] = [
+    {
+        "id": "KB-SLA-001",
+        "title": "SLA 等级与升级流程",
+        "content": (
+            "P1 级别：15 分钟内响应，1 小时内给出缓解方案；"
+            "超过 30 分钟仍未恢复必须升级到 SRE 值班经理并同步客户。"
+        ),
+        "tags": ["sla", "incident", "escalation"],
+    },
+    {
+        "id": "KB-KNOW-014",
+        "title": "知识库引用规范",
+        "content": (
+            "客户对外邮件必须引用不少于 2 条 KB 记录，"
+            "并在结尾附上后续行动与负责人。"
+        ),
+        "tags": ["policy", "communication"],
+    },
+    {
+        "id": "KB-PLAYBOOK-007",
+        "title": "P1 事故应急手册",
+        "content": (
+            "步骤：1) 建立战情群；2) 指派沟通官；3) 每 20 分钟更新客户；"
+            "复盘需在 48 小时内完成并进入 CAPA。"
+        ),
+        "tags": ["playbook", "incident"],
+    },
+]
+
+
+def tokenize(text: str) -> set[str]:
+    return {tok for tok in re.split(r"[^\w]+", text.lower()) if tok}
+
+
+def query_knowledge_base(question: str, limit: int = 3) -> list[dict[str, str]]:
+    """基于内置 KB 的简易检索工具。"""
+    q_tokens = tokenize(question)
+    scored: list[tuple[int, dict[str, str]]] = []
+    for doc in KNOWLEDGE_BASE:
+        doc_text = f"{doc['title']} {doc['content']} {' '.join(doc['tags'])}"
+        overlap = len(q_tokens & tokenize(doc_text))
+        if overlap:
+            scored.append((overlap, doc))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    top_docs = [doc for _, doc in scored[:limit]] or KNOWLEDGE_BASE[:1]
+    return [
+        {
+            "id": doc["id"],
+            "title": doc["title"],
+            "snippet": doc["content"][:200],
+        }
+        for doc in top_docs
+    ]
+
+
+def format_kb_refs(entries: Iterable[dict[str, str]]) -> str:
+    return "\n".join(
+        f"- {entry['id']}: {entry['title']} — {entry['snippet']}" for entry in entries
     )
 
 
@@ -57,33 +116,21 @@ def main() -> None:
     require_keys()
 
     model = resolve_model()
-    tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
-
-    def internet_search(
-        query: str,
-        max_results: int = 5,
-        topic: Literal["general", "news", "finance"] = "general",
-        include_raw_content: bool = False,
-    ):
-        """联网搜索工具。"""
-        return tavily_client.search(
-            query,
-            max_results=max_results,
-            topic=topic,
-            include_raw_content=include_raw_content,
-        )
-
-    research_subagent = {
-        "name": "research-agent",
-        "description": "处理需要更深入事实检索的问题",
-        "system_prompt": "你是研究员。返回事实要点和来源摘要，保持简洁。",
-        "tools": [internet_search],
+    kb_subagent = {
+        "name": "kb-qa",
+        "description": "企业知识库专家，负责命中 KB 并整理证据",
+        "system_prompt": (
+            "你是企业知识库分析师。"
+            "遇到问题时先调用 query_knowledge_base，"
+            "输出需要包含证据列表和后续行动。"
+        ),
+        "tools": [query_knowledge_base],
     }
 
     agent = create_deep_agent(
         model=model,
-        tools=[internet_search],
-        subagents=[research_subagent],
+        tools=[query_knowledge_base],
+        subagents=[kb_subagent],
         backend=make_backend,
         store=InMemoryStore(),
         checkpointer=MemorySaver(),
@@ -91,15 +138,15 @@ def main() -> None:
             "write_file": {"allowed_decisions": ["approve", "reject"]},
         },
         system_prompt=(
-            "你是深度研究助手。"
-            "复杂问题先拆解并在必要时委派 research-agent；"
-            "用户偏好写入 /memories/user_style.md；"
-            "研究报告写入 /reports/*.md。"
+            "你是企业知识库问答协调员。"
+            "所有回答都需引用 query_knowledge_base 返回的记录，"
+            "偏好写入 /memories/user_style.md，"
+            "对外邮件草稿写入 /answers/*.md 并需审核。"
         ),
     )
 
-    config_user = {"configurable": {"thread_id": "capstone-user"}}
-    config_task = {"configurable": {"thread_id": "capstone-task"}}
+    config_user = {"configurable": {"thread_id": "kbqa-user"}}
+    config_task = {"configurable": {"thread_id": "kbqa-task"}}
 
     # 1) 写入长期偏好
     turn1 = agent.invoke(
@@ -121,15 +168,16 @@ def main() -> None:
     print("=== Stage 09 Turn 1 (Write Memory) ===")
     print(turn1["messages"][-1].content)
 
-    # 2) 研究 + 写报告（可能触发 write_file 审批）
+    # 2) 知识库问答 + 写回答草稿（可能触发审批）
     turn2 = agent.invoke(
         {
             "messages": [
                 {
                     "role": "user",
                     "content": (
-                        "请研究 LangGraph 与 Deep Agents 的关系和差异，"
-                        "并把结果写入 /reports/deepagents_vs_langgraph.md。"
+                        "客户 Cobalt Retail 提问："
+                        "P1 故障期间 SLA、升级路径、以及客户通知频率是什么？"
+                        "请基于企业知识库整理回复草稿，并写入 /answers/cobalt_incident.md。"
                     ),
                 }
             ]
@@ -138,18 +186,18 @@ def main() -> None:
     )
     turn2 = resume_if_interrupted(agent, turn2, config_task)
 
-    print("\n=== Stage 09 Turn 2 (Research + Write Report) ===")
+    print("\n=== Stage 09 Turn 2 (KB Answer Draft) ===")
     print(turn2["messages"][-1].content)
 
-    # 3) 复读报告并应用用户偏好
+    # 3) 复读回答并引用证据
     turn3 = agent.invoke(
         {
             "messages": [
                 {
                     "role": "user",
                     "content": (
-                        "请读取 /reports/deepagents_vs_langgraph.md，"
-                        "并按我的偏好给出最终摘要。"
+                        "请读取 /answers/cobalt_incident.md，"
+                        "按我的偏好给出客户可读版本，并附上知识库引用。"
                     ),
                 }
             ]
