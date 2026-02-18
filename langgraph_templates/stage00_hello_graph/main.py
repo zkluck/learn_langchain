@@ -30,6 +30,7 @@ graph = builder.compile()              # 编译成可执行图
 if __name__ == "__main__":
     result = graph.invoke({"input": "LangGraph 新手"})
     print("=== Hello Graph 结果 ===")
+    print(result)
     print(f"input:  {result['input']}")
     print(f"output: {result['output']}")
 

@@ -79,15 +79,21 @@ def step_b(state: LogState) -> dict:
     """节点 B：追加日志。"""
     return {"logs": ["step_b 完成处理"]}
 
+def step_c(state: LogState) -> dict:
+    """节点 C：追加日志。"""
+    return {"logs": ["step_c 完成处理"]}
+
 
 def demo_reducer_state():
     """演示：Reducer 追加列表。"""
     builder = StateGraph(LogState)
     builder.add_node("step_a", step_a)
     builder.add_node("step_b", step_b)
+    builder.add_node("step_c", step_c)
     builder.add_edge(START, "step_a")
     builder.add_edge("step_a", "step_b")
-    builder.add_edge("step_b", END)
+    builder.add_edge("step_b", "step_c")
+    builder.add_edge("step_c", END)
     graph = builder.compile()
 
     result = graph.invoke({"query": "测试 reducer", "logs": []})
@@ -119,6 +125,7 @@ def demo_messages_state():
     for msg in result["messages"]:
         role = getattr(msg, "type", "unknown")
         content = getattr(msg, "content", str(msg))
+        print(msg)
         print(f"  [{role}] {content}")
     print()
 
