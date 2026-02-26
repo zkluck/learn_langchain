@@ -88,9 +88,10 @@ if __name__ == "__main__":
     # 此时图暂停在 review 节点，r2 包含 interrupt 的提示信息
     print(f"  图暂停，等待审批...")
 
-    # 模拟人工批准
-    print("\n=== 场景 2: 人工批准，恢复执行 ===")
-    r2_resumed = graph.invoke(Command(resume="yes"), config=config2)
+    # 提示真实审批人输入 yes/no，替代原先的模拟值
+    print("\n=== 场景 2: 人工批准，等待输入 ===")
+    decision = input("  请输入审批结果 (yes/no): ").strip().lower()
+    r2_resumed = graph.invoke(Command(resume=decision), config=config2)
     print(f"  结果: {r2_resumed['result']}\n")
 
     # === 场景 3: 高风险操作 — 人工拒绝 ===
