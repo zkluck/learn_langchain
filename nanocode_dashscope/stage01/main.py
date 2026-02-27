@@ -56,7 +56,7 @@ def write_tool(file_path: str, content: str) -> str:
         with open(path, 'w', encoding='utf-8') as f:
             f.write(content)
         
-        return f"✓ 成功写入文件: {file_path} (内容长度: {len(content)} 字符)"
+        return f"[OK] 成功写入文件: {file_path} (内容长度: {len(content)} 字符)"
     
     except PermissionError:
         return f"错误: 没有权限写入文件 '{file_path}'"
@@ -84,8 +84,8 @@ def main():
     # 清理测试文件
     try:
         os.remove(test_file)
-        print(f"\n✓ 清理测试文件: {test_file}")
-    except:
+        print(f"\n[OK] 清理测试文件: {test_file}")
+    except OSError:
         pass
     
     # 显示工具定义

@@ -4,9 +4,11 @@ Stage 03: Shell 与搜索工具
 实现 glob/grep/bash 三个基础工具
 """
 
+import os
 from pathlib import Path
 import glob
 import re
+import shlex
 import subprocess
 from typing import List
 
@@ -37,15 +39,22 @@ def grep_tool(pattern: str, file_pattern: str = "*") -> List[str]:
 
 def bash_tool(command: str) -> str:
     """执行 shell 命令并返回输出、错误、退出码"""
+    if not command.strip():
+        return "错误: 命令不能为空"
     try:
-        # 使用 subprocess 运行命令，并捕获输出便于回显
+        # 使用 shell=False 执行命令，避免命令注入风险
+        command_args = shlex.split(command, posix=(os.name != "nt"))
         result = subprocess.run(
-            command,
-            shell=True,
+            command_args,
+            shell=False,
             capture_output=True,
             text=True,
             timeout=15,
         )
+    except ValueError as error:
+        return f"错误: 命令解析失败 - {error}"
+    except OSError as error:
+        return f"错误: 命令执行失败 - {error}"
     except subprocess.TimeoutExpired:
         return "错误: 命令执行超时 (15 秒)"
     output = []
@@ -86,8 +95,9 @@ def main() -> int:
         print("未找到包含 'nanocode' 的内容")
 
     print("\n--- bash 示例 ---")
-    # 执行 ls 命令展示目录结构
-    print(bash_tool("ls"))
+    # 执行目录列举命令展示目录结构（兼容 Windows/Linux/macOS）
+    list_command = "cmd /c dir" if os.name == "nt" else "ls"
+    print(bash_tool(list_command))
 
     return 0
 

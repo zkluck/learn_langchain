@@ -60,23 +60,23 @@ def main() -> int:
         return 1
 
     messages: List[Dict[str, str]] = []
-    print("🤖 请输入问题 (输入 /c 清空历史, /q 退出):")
+    print("[INFO] 请输入问题 (输入 /c 清空历史, /q 退出):")
 
     while True:
         try:
             user_input = input("\n> ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\n👋 再见！")
+            print("\n[INFO] 再见！")
             break
 
         if not user_input:
             continue
         if user_input == "/q":
-            print("\n👋 再见！")
+            print("\n[INFO] 再见！")
             break
         if user_input == "/c":
             messages.clear()
-            print("\n🧹 对话历史已清空")
+            print("\n[OK] 对话历史已清空")
             continue
 
         # 追加用户消息
@@ -85,13 +85,13 @@ def main() -> int:
         try:
             response = call_api(messages)
         except RuntimeError as error:
-            print(f"\n❌ 调用失败: {error}")
+            print(f"\n[ERR] 调用失败: {error}")
             messages.pop()  # 删除导致失败的消息，避免阻塞后续对话
             continue
 
         assistant_message = response["choices"][0]["message"]
         messages.append(assistant_message)
-        print("\n💬 模型回复:")
+        print("\n[ASSISTANT] 模型回复:")
         print(assistant_message.get("content", "(无内容)"))
 
     return 0

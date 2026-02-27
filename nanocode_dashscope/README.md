@@ -17,6 +17,17 @@ export OPENAI_API_KEY="your-dashscope-api-key"
 # 可选
 export OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
 export MODEL="openai:qwen3-max"
+
+# 可选（默认关闭 shell 工具，建议按需开启）
+export ENABLE_BASH_TOOL="0"
+```
+
+```powershell
+# Windows PowerShell
+$env:OPENAI_API_KEY="your-dashscope-api-key"
+$env:OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+$env:MODEL="openai:qwen3-max"
+$env:ENABLE_BASH_TOOL="0"
 ```
 
 ## 运行方式
@@ -51,6 +62,7 @@ nanocode_dashscope/
 - **401 Unauthorized**: 检查 `OPENAI_API_KEY` 是否正确
 - **404 Not Found**: 检查 `OPENAI_BASE_URL` 和 `MODEL` 配置
 - **超时**: 网络问题或模型响应慢，可重试
+- **Windows 控制台乱码/报错**: 建议使用 PowerShell 或 `chcp 65001` 后再运行
 
 ## 依赖
 

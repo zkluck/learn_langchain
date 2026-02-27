@@ -6,7 +6,7 @@
 
 - `glob`: 使用通配符列出文件
 - `grep`: 在文件中查找匹配的文本
-- `bash`: 执行受限 shell 命令并返回输出、错误、退出码
+- `bash`: 使用 `shell=False` 执行命令并返回输出、错误、退出码
 
 ## 运行
 
@@ -37,3 +37,5 @@ stage01
 ...
 退出码: 0
 ```
+
+在 Windows 下示例会执行 `cmd /c dir`，在 Linux/macOS 下执行 `ls`。

@@ -17,9 +17,9 @@ python main.py
 ## 预期输出
 
 ```
-✓ Python 3.11.x
-✓ OPENAI_API_KEY 已设置
-✓ OPENAI_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
-✓ MODEL: openai:qwen3-max
+[OK] Python 3.11.x
+[OK] OPENAI_API_KEY: sk-a...9xyz
+[OK] OPENAI_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+[OK] MODEL: openai:qwen3-max
 环境检查通过，可以进入下一阶段
 ```

@@ -20,7 +20,7 @@ python main.py
 === nanocode_dashscope Stage 01: 文件读写工具 ===
 
 --- 测试 write 工具 ---
-✓ 写入文件: test.txt (内容: Hello, World!)
+[OK] 写入文件: test.txt (内容: Hello, World!)
 
 --- 测试 read 工具 ---
 文件内容: test.txt

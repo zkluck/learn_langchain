@@ -15,19 +15,24 @@ export OPENAI_API_KEY="your-dashscope-api-key"
 python main.py
 ```
 
+```powershell
+$env:OPENAI_API_KEY="your-dashscope-api-key"
+python main.py
+```
+
 ## 预期交互
 
 ```
 === nanocode_dashscope Stage 07: 基础对话循环 ===
 
-🤖 请输入问题 (输入 /c 清空历史, /q 退出):
+[INFO] 请输入问题 (输入 /c 清空历史, /q 退出):
 > 你好
 
-💬 模型回复:
+[ASSISTANT] 模型回复:
 你好！有什么可以帮忙的吗？
 
-🤖 请输入问题 (输入 /c 清空历史, /q 退出):
+[INFO] 请输入问题 (输入 /c 清空历史, /q 退出):
 > /c
 
-🧹 对话历史已清空
+[OK] 对话历史已清空
 ```

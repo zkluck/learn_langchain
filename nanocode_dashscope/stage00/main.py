@@ -6,28 +6,34 @@ Stage 00: 环境检查
 
 import os
 import sys
-from pathlib import Path
 
 def check_python_version():
     """检查 Python 版本是否为 3.11+"""
     # 读取当前解释器的版本号，确认是否满足最低要求
     version = sys.version_info
     if version.major == 3 and version.minor >= 11:
-        print(f"✓ Python {version.major}.{version.minor}.{version.micro}")
+        print(f"[OK] Python {version.major}.{version.minor}.{version.micro}")
         return True
     else:
-        print(f"✗ Python {version.major}.{version.minor}.{version.micro} (需要 3.11+)")
+        print(f"[ERR] Python {version.major}.{version.minor}.{version.micro} (需要 3.11+)")
         return False
 
-def check_env_var(name, default=None):
+def mask_secret(value: str) -> str:
+    """对敏感值做脱敏显示，避免日志泄露密钥"""
+    if len(value) <= 8:
+        return "*" * len(value)
+    return f"{value[:4]}...{value[-4:]}"
+
+def check_env_var(name, default=None, mask=False):
     """检查环境变量"""
     # 拉取环境变量值，如果允许则回退到默认值
     value = os.getenv(name, default)
     if value:
-        print(f"✓ {name}: {value}")
+        display_value = mask_secret(value) if mask else value
+        print(f"[OK] {name}: {display_value}")
         return True
     else:
-        print(f"✗ {name} 未设置")
+        print(f"[ERR] {name} 未设置")
         return False
 
 def main():
@@ -40,7 +46,7 @@ def main():
     print("\n--- 环境变量检查 ---")
     
     # 检查必需的环境变量，缺失时直接阻塞
-    api_key_ok = check_env_var("OPENAI_API_KEY")
+    api_key_ok = check_env_var("OPENAI_API_KEY", mask=True)
     
     # 检查可选的环境变量（提供默认值方便快速体验）
     base_url_ok = check_env_var(

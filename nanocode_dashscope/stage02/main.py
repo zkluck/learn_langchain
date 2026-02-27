@@ -27,7 +27,7 @@ def write_tool(file_path: str, content: str) -> str:
         # 确保父目录存在后写入内容，避免因路径不存在导致失败
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding='utf-8')
-        return f"✓ 写入文件: {file_path}"
+        return f"[OK] 写入文件: {file_path}"
     except Exception as error:
         return f"错误: 写入文件失败 - {error}"
 
@@ -42,7 +42,7 @@ def edit_tool(file_path: str, old_text: str, new_text: str) -> str:
         if old_text not in content:
             return "错误: 未找到需要替换的文本"
         path.write_text(content.replace(old_text, new_text), encoding='utf-8')
-        return f"✓ 成功替换文本: {old_text} -> {new_text}"
+        return f"[OK] 成功替换文本: {old_text} -> {new_text}"
     except Exception as error:
         return f"错误: 编辑文件失败 - {error}"
 
@@ -71,7 +71,7 @@ def main() -> int:
     # 清理测试文件
     try:
         os.remove(sample_file)
-        print(f"\n✓ 清理测试文件: {sample_file}")
+        print(f"\n[OK] 清理测试文件: {sample_file}")
     except OSError:
         pass
     

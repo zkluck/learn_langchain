@@ -24,7 +24,7 @@ python main.py
 2: 第二行保持不变
 
 --- 执行 edit 工具 ---
-✓ 成功替换文本: TODO: replace me -> DONE
+[OK] 成功替换文本: TODO: replace me -> DONE
 
 --- 编辑后内容 ---
 1: DONE

@@ -15,6 +15,11 @@ export OPENAI_API_KEY="your-dashscope-api-key"
 python main.py
 ```
 
+```powershell
+$env:OPENAI_API_KEY="your-dashscope-api-key"
+python main.py
+```
+
 ## 预期输出
 
 ```

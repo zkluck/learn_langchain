@@ -14,13 +14,15 @@
 - **多轮对话**: 维护完整的对话历史
 - **工具调用**: 自动解析和执行模型返回的工具调用
 - **错误处理**: 完善的错误提示和恢复机制
-- **终端界面**: 清晰的输出格式和颜色支持
+- **终端界面**: 清晰的输出格式与状态标签
 
 ## 运行
 
 ```bash
 # 设置环境变量
 export OPENAI_API_KEY="your-dashscope-api-key"
+# 可选：默认关闭，按需开启
+export ENABLE_BASH_TOOL="1"
 
 # 启动交互式代理
 python main.py
@@ -33,27 +35,35 @@ python main.py
 # "/q" - 退出程序
 ```
 
+```powershell
+# Windows PowerShell
+$env:OPENAI_API_KEY="your-dashscope-api-key"
+# 可选：默认关闭，按需开启
+$env:ENABLE_BASH_TOOL="1"
+python main.py
+```
+
 ## 预期交互示例
 
 ```
 === nanocode_dashscope Stage 09: 完整代理 ===
 
-🤖 输入你的问题 (输入 /c 清空历史, /q 退出):
+[INFO] 输入你的问题 (输入 /c 清空历史, /q 退出):
 > 读取 README.md 文件
 
-🔧 调用工具: read(file_path="README.md")
-✓ 工具执行成功
+[TOOL] 调用工具: read(file_path="README.md")
+[OK] 工具执行成功
 
-📝 README.md 内容:
+[FILE] README.md 内容:
 1: # nanocode_dashscope
 2: 
 3: 分阶段 Python 教程...
 
-💬 模型回复:
+[ASSISTANT] 模型回复:
 我已经读取了 README.md 文件。这是一个分阶段 Python 教程项目，展示了如何使用 DashScope 构建代理循环...
 
-🤖 输入你的问题 (输入 /c 清空历史, /q 退出):
+[INFO] 输入你的问题 (输入 /c 清空历史, /q 退出):
 > /q
 
-👋 再见！
+[INFO] 再见！
 ```
