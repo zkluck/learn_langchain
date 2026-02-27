@@ -6,6 +6,7 @@ Stage 00: 环境检查
 
 import os
 import sys
+from dotenv import load_dotenv
 
 def check_python_version():
     """检查 Python 版本是否为 3.11+"""
@@ -65,4 +66,6 @@ def main():
         return 1
 
 if __name__ == "__main__":
+    load_dotenv()
+    
     sys.exit(main())
