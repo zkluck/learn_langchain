@@ -54,7 +54,7 @@ def main():
         "OPENAI_BASE_URL", 
         "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
     )
-    model_ok = check_env_var("MODEL", "openai:qwen3-max")
+    model_ok = check_env_var("MODEL", "qwen3-max")
     
     print("\n--- 检查结果 ---")
     

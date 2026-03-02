@@ -44,7 +44,7 @@ def build_payload() -> Dict[str, Any]:
     """组装完整 payload，包含模型、消息、工具等字段"""
     # 模型支持通过环境变量覆盖，便于实验不同 DashScope 模型
     payload: Dict[str, Any] = {
-        "model": os.getenv("MODEL", "openai:qwen3-max"),
+        "model": os.getenv("MODEL", "qwen3-max"),
         "messages": build_messages(),
         "tools": TOOLS,
         "tool_choice": "auto",

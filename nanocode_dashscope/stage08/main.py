@@ -10,26 +10,75 @@ import os
 import re
 import shlex
 import subprocess
+import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any, Callable, Dict, List
+from dotenv import load_dotenv
 
 Message = Dict[str, Any]
 ToolSchema = Dict[str, Any]
 ToolCall = Dict[str, Any]
 
+# 当前脚本默认将“启动目录”作为工作区根路径。
+# 后续 read/write/edit/glob/grep/bash 都会基于该目录执行，避免误操作到其它目录。
 WORKSPACE_ROOT = Path.cwd().resolve()
+
+# 工具调用最多连续回合数：避免模型陷入“无限调用工具”的死循环。
 MAX_TOOL_ROUNDS = 8
+
+# 终端里打印工具结果时只展示前缀，避免刷屏。
 MAX_TOOL_RESULT_PREVIEW = 200
+
+# 工具真实返回给模型的文本也要限制长度，防止上下文爆炸。
 MAX_TOOL_OUTPUT_CHARS = 8000
+
+# 预加载 .env 文件以便后续读取 API Key 等配置
+load_dotenv()
+
+
+def configure_stdio() -> None:
+    """保留终端编码，仅放宽错误处理，避免中文/emoji 输出报错"""
+    # 不强制改编码，只把不可编码字符替换掉，兼容 Windows/Powershell 各种终端设置。
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(errors="replace")
+            except OSError:
+                # 某些终端不支持重设参数，忽略即可
+                pass
+
+
+def normalize_base_url(base_url: str) -> str:
+    """兼容两种地址写法：.../v1 或 .../chat/completions"""
+    url = base_url.strip().rstrip("/")
+    if url.endswith("/chat/completions"):
+        return url
+    if url.endswith("/v1"):
+        # 用户常把 OPENAI_BASE_URL 配成根路径，这里自动补全到 chat/completions。
+        return f"{url}/chat/completions"
+    return url
+
+
+def normalize_model(model: str) -> str:
+    """兼容历史写法 openai:qwen3-max -> qwen3-max"""
+    value = model.strip()
+    if value.startswith("openai:"):
+        # 早期示例用了 openai: 前缀，这里兼容为 DashScope 可识别模型名。
+        return value.split(":", 1)[1]
+    return value
 
 
 def resolve_workspace_path(file_path: str) -> Path:
     """将路径限制在当前工作目录内，防止越界访问"""
     raw_path = Path(file_path)
+    # 相对路径按工作区拼接；绝对路径保持原样后再做越界校验。
     resolved = raw_path.resolve() if raw_path.is_absolute() else (WORKSPACE_ROOT / raw_path).resolve()
     try:
+        # 关键安全检查：必须是 WORKSPACE_ROOT 的子路径。
         resolved.relative_to(WORKSPACE_ROOT)
     except ValueError as error:
         raise ValueError(f"路径越界: '{file_path}' 不在工作目录内") from error
@@ -50,11 +99,13 @@ def to_workspace_relative(path: Path) -> str:
     try:
         return str(path.resolve().relative_to(WORKSPACE_ROOT))
     except ValueError:
+        # 正常情况下不会走到这里；兜底返回原路径，避免格式化报错。
         return str(path)
 
 
 def clip_text(text: str, limit: int = MAX_TOOL_OUTPUT_CHARS) -> str:
     """限制输出长度，避免工具返回过大文本"""
+    # strip 后再判断长度，避免纯空白内容占用配额。
     stripped = text.strip()
     if len(stripped) <= limit:
         return stripped
@@ -149,8 +200,10 @@ def grep_tool(pattern: str, file_pattern: str = "*") -> str:
                     relative_path = to_workspace_relative(path)
                     results.append(f"{relative_path}:{idx}: {line}")
         except OSError:
+            # 忽略不可读文件，继续扫其它文件。
             continue
         if len(results) >= 50:
+            # 上限保护：匹配太多会占满上下文，截断即可。
             break
     if not results:
         return f"未找到包含 '{pattern}' 的内容"
@@ -162,6 +215,7 @@ def grep_tool(pattern: str, file_pattern: str = "*") -> str:
 def bash_tool(command: str) -> str:
     """执行命令并返回输出/错误/退出码（默认关闭）"""
     if os.getenv("ENABLE_BASH_TOOL", "0") != "1":
+        # 默认关掉高风险能力，只有显式开启才允许执行。
         return "错误: bash 工具默认关闭，请设置 ENABLE_BASH_TOOL=1 后重试"
 
     if not command.strip():
@@ -179,6 +233,7 @@ def bash_tool(command: str) -> str:
         result = subprocess.run(
             args,
             shell=False,
+            # 强制在工作区运行，避免模型把命令切到系统敏感目录。
             cwd=str(WORKSPACE_ROOT),
             capture_output=True,
             text=True,
@@ -203,6 +258,7 @@ def bash_tool(command: str) -> str:
 def make_schema() -> List[ToolSchema]:
     """生成 function calling schema"""
     tools: List[ToolSchema] = []
+    # 这里维护“工具单一事实来源”：函数名、描述、参数结构都在这里定义。
     definitions: Dict[str, Dict[str, object]] = {
         "read": {
             "description": "读取文件内容并显示行号",
@@ -308,16 +364,19 @@ def make_schema() -> List[ToolSchema]:
 
 def call_api(messages: List[Message], tools: List[ToolSchema] | None) -> Dict[str, Any]:
     """调用 DashScope，并可选传入工具 schema"""
-    base_url = os.getenv(
-        "OPENAI_BASE_URL",
-        "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    base_url = normalize_base_url(
+        os.getenv(
+            "OPENAI_BASE_URL",
+            "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        )
     )
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY 未配置")
 
+    # messages 必须携带完整上下文（用户 + assistant + tool），模型才能“记住历史”。
     payload: Dict[str, Any] = {
-        "model": os.getenv("MODEL", "openai:qwen3-max"),
+        "model": normalize_model(os.getenv("MODEL", "qwen3-max")),
         "messages": messages,
     }
     if tools:
@@ -325,6 +384,7 @@ def call_api(messages: List[Message], tools: List[ToolSchema] | None) -> Dict[st
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
 
+    # 直接用 urllib 发 POST，便于教学阶段观察原始请求结构。
     data = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         base_url,
@@ -338,7 +398,28 @@ def call_api(messages: List[Message], tools: List[ToolSchema] | None) -> Dict[st
 
     try:
         with urllib.request.urlopen(request, timeout=60) as response:
-            return json.loads(response.read().decode("utf-8"))
+            status = getattr(response, "status", 200)
+            content_type = response.headers.get("Content-Type", "")
+            body_text = response.read().decode("utf-8", errors="replace").strip()
+
+            if not body_text:
+                raise RuntimeError(
+                    f"HTTP {status}: 响应体为空 (Content-Type: {content_type or 'unknown'})"
+                )
+
+            try:
+                parsed = json.loads(body_text)
+            except json.JSONDecodeError as error:
+                preview = body_text[:400]
+                raise RuntimeError(
+                    f"HTTP {status}: 响应不是有效 JSON (Content-Type: {content_type or 'unknown'})\n"
+                    f"解析错误: {error}\n"
+                    f"响应预览:\n{preview}"
+                )
+
+            if not isinstance(parsed, dict):
+                raise RuntimeError(f"HTTP {status}: 响应 JSON 顶层类型异常: {type(parsed).__name__}")
+            return parsed
     except urllib.error.HTTPError as error:
         detail = error.read().decode("utf-8") if error.fp else ""
         raise RuntimeError(f"HTTP {error.code}: {error.reason}\n{detail}")
@@ -348,6 +429,8 @@ def call_api(messages: List[Message], tools: List[ToolSchema] | None) -> Dict[st
 
 def extract_assistant_message(response: Dict[str, Any]) -> Message:
     """从 API 响应中提取 assistant message，并做结构校验"""
+    # 做结构校验而不是直接 response["choices"][0]["message"]，
+    # 可以在返回格式变化时给出更友好的错误。
     choices = response.get("choices")
     if not isinstance(choices, list) or not choices:
         raise RuntimeError("响应格式异常: 缺少 choices")
@@ -367,6 +450,7 @@ def parse_tool_arguments(raw_arguments: Any) -> Dict[str, Any]:
     if isinstance(raw_arguments, str):
         if not raw_arguments.strip():
             return {}
+        # 某些模型会把 arguments 作为 JSON 字符串返回，需要反序列化。
         parsed = json.loads(raw_arguments)
         if not isinstance(parsed, dict):
             raise ValueError("工具参数必须是 JSON 对象")
@@ -401,6 +485,7 @@ def execute_tool_call(tool_call: ToolCall) -> str:
     if executor is None:
         return f"错误: 未知工具 '{name}'"
     try:
+        # 通过 **arguments 动态分发参数，让 schema 与执行器保持对齐。
         return executor(**arguments)
     except TypeError as error:
         return f"错误: 参数缺失或格式不正确 - {error}"
@@ -410,6 +495,7 @@ def execute_tool_call(tool_call: ToolCall) -> str:
 
 def main() -> int:
     """带工具调用的命令行循环"""
+    configure_stdio()
     print("=== nanocode_dashscope Stage 08: 工具调用循环 ===\n")
 
     if not os.getenv("OPENAI_API_KEY"):
@@ -440,15 +526,19 @@ def main() -> int:
             print("\n[OK] 对话历史已清空")
             continue
 
+        # 第 1 步：先把用户问题写入上下文。
         messages.append({"role": "user", "content": user_input})
 
         try:
+            # 第 2 步：首次请求模型，模型可能直接回答，也可能返回 tool_calls。
             response = call_api(messages, schemas)
         except RuntimeError as error:
             print(f"\n[ERR] 调用失败: {error}")
+            # 本轮失败则回滚最后一条 user 消息，避免脏上下文影响后续轮次。
             messages.pop()
             continue
 
+        # 进入“工具循环”：assistant -> tool -> assistant ... 直到 assistant 给出最终自然语言答案。
         reached_tool_limit = True
         for _ in range(MAX_TOOL_ROUNDS):
             try:
@@ -458,9 +548,11 @@ def main() -> int:
                 reached_tool_limit = False
                 break
 
+            # 无论是否调用工具，都先保存 assistant 消息，保证上下文完整可追溯。
             messages.append(assistant_message)
             tool_calls = assistant_message.get("tool_calls")
             if not isinstance(tool_calls, list) or not tool_calls:
+                # 没有工具调用，说明这是最终答复，直接打印并结束当前用户问题。
                 print(f"\n[ASSISTANT] 模型回复:\n{assistant_message.get('content', '(无内容)')}")
                 reached_tool_limit = False
                 break
@@ -473,6 +565,7 @@ def main() -> int:
                 preview = result if len(result) <= MAX_TOOL_RESULT_PREVIEW else f"{result[:MAX_TOOL_RESULT_PREVIEW]}..."
                 print(f"[OK] 工具结果: {preview}")
                 tool_call_id = tool_call.get("id")
+                # 工具结果必须以 role=tool 回传给模型，并带上 tool_call_id 才能正确对齐。
                 messages.append(
                     {
                         "role": "tool",
@@ -482,6 +575,7 @@ def main() -> int:
                 )
 
             try:
+                # 把“assistant 的 tool_calls + tool 执行结果”一起发回模型，请它继续推理。
                 response = call_api(messages, schemas)
             except RuntimeError as error:
                 print(f"\n[ERR] 调用失败: {error}")
@@ -489,6 +583,7 @@ def main() -> int:
                 break
 
         if reached_tool_limit:
+            # 到这里表示连续 MAX_TOOL_ROUNDS 次都没收敛，主动中断防止死循环。
             print(f"\n[ERR] 工具调用轮次超过上限（{MAX_TOOL_ROUNDS} 轮），已停止当前请求。")
 
     return 0

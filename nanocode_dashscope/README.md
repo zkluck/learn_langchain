@@ -16,7 +16,7 @@ export OPENAI_API_KEY="your-dashscope-api-key"
 
 # 可选
 export OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-export MODEL="openai:qwen3-max"
+export MODEL="qwen3-max"
 
 # 可选（默认关闭 shell 工具，建议按需开启）
 export ENABLE_BASH_TOOL="0"
@@ -26,7 +26,7 @@ export ENABLE_BASH_TOOL="0"
 # Windows PowerShell
 $env:OPENAI_API_KEY="your-dashscope-api-key"
 $env:OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-$env:MODEL="openai:qwen3-max"
+$env:MODEL="qwen3-max"
 $env:ENABLE_BASH_TOOL="0"
 ```
 

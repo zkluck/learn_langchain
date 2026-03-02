@@ -21,7 +21,7 @@ python main.py
 
 --- 请求体 ---
 {
-  "model": "openai:qwen3-max",
+  "model": "qwen3-max",
   "messages": [
     {
       "role": "user",

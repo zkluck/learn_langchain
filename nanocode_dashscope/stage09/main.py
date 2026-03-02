@@ -15,6 +15,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
+from dotenv import load_dotenv
 
 Message = Dict[str, Any]
 ToolSchema = Dict[str, Any]
@@ -24,6 +25,40 @@ WORKSPACE_ROOT = Path.cwd().resolve()
 MAX_TOOL_ROUNDS = 8
 MAX_TOOL_RESULT_PREVIEW = 200
 MAX_TOOL_OUTPUT_CHARS = 8000
+
+# 预加载 .env 文件以便后续读取 API Key 等配置
+load_dotenv()
+
+
+def configure_stdio() -> None:
+    """保留终端编码，仅放宽错误处理，避免中文/emoji 输出报错"""
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(errors="replace")
+            except OSError:
+                # 某些终端不支持重设参数，忽略即可
+                pass
+
+
+def normalize_base_url(base_url: str) -> str:
+    """兼容两种地址写法：.../v1 或 .../chat/completions"""
+    url = base_url.strip().rstrip("/")
+    if url.endswith("/chat/completions"):
+        return url
+    if url.endswith("/v1"):
+        return f"{url}/chat/completions"
+    return url
+
+
+def normalize_model(model: str) -> str:
+    """兼容历史写法 openai:qwen3-max -> qwen3-max"""
+    value = model.strip()
+    if value.startswith("openai:"):
+        return value.split(":", 1)[1]
+    return value
 
 
 def resolve_workspace_path(file_path: str) -> Path:
@@ -340,11 +375,13 @@ def make_schema() -> List[ToolSchema]:
 def call_api(messages: List[Message], tools: Optional[List[ToolSchema]] = None) -> Dict[str, Any]:
     """调用 DashScope API"""
     api_key = os.getenv("OPENAI_API_KEY")
-    base_url = os.getenv(
-        "OPENAI_BASE_URL",
-        "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    base_url = normalize_base_url(
+        os.getenv(
+            "OPENAI_BASE_URL",
+            "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        )
     )
-    model = os.getenv("MODEL", "openai:qwen3-max")
+    model = normalize_model(os.getenv("MODEL", "qwen3-max"))
 
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY 环境变量未设置")
@@ -456,6 +493,7 @@ def execute_tool_call(tool_call: ToolCall) -> str:
 # 主循环
 def main() -> int:
     """主函数：交互式代理循环"""
+    configure_stdio()
     print("=== nanocode_dashscope Stage 09: 完整代理 ===\n")
 
     # 检查环境变量

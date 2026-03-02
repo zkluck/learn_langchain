@@ -20,6 +20,6 @@ python main.py
 [OK] Python 3.11.x
 [OK] OPENAI_API_KEY: sk-a...9xyz
 [OK] OPENAI_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
-[OK] MODEL: openai:qwen3-max
+[OK] MODEL: qwen3-max
 环境检查通过，可以进入下一阶段
 ```
