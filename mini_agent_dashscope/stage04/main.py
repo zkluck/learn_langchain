@@ -131,9 +131,18 @@ def dispatch_tool(name: str, arguments: Dict[str, Any]) -> str:
         if name == "list_files":
             return tool_list_files(path=str(arguments.get("path", ".")))
         if name == "read_file":
-            return tool_read_file(path=str(arguments["path"]))
+            path = arguments.get("path")
+            if path is None:
+                return "错误: 缺少必需参数 path"
+            return tool_read_file(path=str(path))
         if name == "write_file":
-            return tool_write_file(path=str(arguments["path"]), content=str(arguments["content"]))
+            path = arguments.get("path")
+            content = arguments.get("content")
+            if path is None:
+                return "错误: 缺少必需参数 path"
+            if content is None:
+                return "错误: 缺少必需参数 content"
+            return tool_write_file(path=str(path), content=str(content))
         return f"错误: 未知工具 {name}"
     except Exception as error:  # noqa: BLE001
         return f"错误: 工具执行失败 - {error}"
@@ -171,7 +180,10 @@ def run_loop(task: str, max_rounds: int) -> int:
     print("task:", task)
 
     for round_idx in range(1, max_rounds + 1):
-        print(f"\n=== Round {round_idx}/{max_rounds} ===")
+        choices = response_json.get("choices", [])
+        if not choices:
+            raise RuntimeError("API 返回空的 choices 列表")
+        message = choices[0].get("message", {})
         response_json = call_chat_completion(
             settings=settings,
             messages=messages,

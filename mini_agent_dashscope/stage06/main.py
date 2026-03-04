@@ -203,7 +203,12 @@ def run_tool(name: str, arguments: Dict[str, Any]) -> str:
         if name == "record_note":
             return record_note(content=str(arguments["content"]), category=str(arguments.get("category", "general")))
         if name == "recall_notes":
-            return recall_notes(category=str(arguments.get("category", "")), limit=int(arguments.get("limit", 20)))
+            limit_str = arguments.get("limit", "20")
+            try:
+                limit = int(limit_str)
+            except (ValueError, TypeError):
+                return f"错误: 参数 limit 必须是整数，收到: {limit_str}"
+            return recall_notes(category=str(arguments.get("category", "")), limit=limit)
         return f"错误: 未知工具 {name}"
     except Exception as error:  # noqa: BLE001
         return f"错误: 工具执行失败 - {error}"
