@@ -180,10 +180,6 @@ def run_loop(task: str, max_rounds: int) -> int:
     print("task:", task)
 
     for round_idx in range(1, max_rounds + 1):
-        choices = response_json.get("choices", [])
-        if not choices:
-            raise RuntimeError("API 返回空的 choices 列表")
-        message = choices[0].get("message", {})
         response_json = call_chat_completion(
             settings=settings,
             messages=messages,
