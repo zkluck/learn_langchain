@@ -20,6 +20,9 @@
 - LangChain（当前文档）：`templates/`
 - LangGraph（10 Stage）：`LANGGRAPH_README.md`
 - Deep Agents（10 Stage）：`DEEPAGENTS_README.md`
+- Mini-Agent + DashScope 代码教程：`mini_agent_dashscope/README.md`
+- Mini-Agent 统一阶段手册（合并版）：`mini_agent_dashscope/UNIFIED_STAGE_GUIDE.md`
+- Mini-Agent 理论文档（迁移）：`mini_agent_dashscope/docs/README.md`
 
 ## Stage 总览
 | Stage | 主题 | 关键能力 |
